@@ -48,6 +48,24 @@ This project implements a binary image classification model to classify chest X-
 4. **Augmentation**: Rotation, zoom, shift, horizontal flip, brightness variation
 5. **Callbacks**: ModelCheckpoint (best accuracy), EarlyStopping, ReduceLROnPlateau
 
+## Notebook Workflow
+
+The notebook (`pneumonia_detection.ipynb`) is organized into **9 cells**:
+
+| Cell | Purpose | Needs Re-run? |
+|------|---------|---------------|
+| 1 | Imports, setup, paths | Yes (first only) |
+| 2 | Dataset inventory & distribution | No |
+| 3 | Data generators & augmentation | No |
+| 4 | Model architecture & training | No |
+| 5 | Learning curves visualization | No |
+| 6 | Test evaluation & metrics export | No |
+| 7 | Predict on a random test image | Yes (if needed) |
+| 8 | **Interactive image picker** ✨ | **Yes (each session)** |
+
+**For prediction-only mode**: Run **Cell 1** → **Cell 8** (takes ~10 seconds)  
+**For full training**: Run all cells **1–6** (takes ~20 minutes on GPU)
+
 ## Outputs
 
 Results are saved in the `result/` folder:
@@ -62,30 +80,55 @@ Results are saved in the `result/` folder:
 
 ## Usage
 
-### Run the Full Pipeline
+### Quick Start: Interactive Prediction (After Model Training)
+Once the model is trained, you can use it for predictions without re-running the training pipeline:
+
+1. **Run Cell 1** (imports and setup) — takes ~5 seconds
+2. **Run Cell 9** (interactive image picker) — opens a file dialog, lets you select any image, and returns the prediction with confidence
+
+**No need to run Cells 2–8 again** — they are for training/evaluation only.
+
+### Run the Full Training Pipeline
 ```bash
 jupyter notebook pneumonia_detection.ipynb
+# Run all cells in order (Cells 1–8)
 ```
 
-### Load and Use the Trained Model
+### Interactive Prediction in the Notebook
+Cell 9 provides an interactive GUI file picker. After running Cell 1:
+```
+# Run this cell to choose an image from your workspace
+# A file dialog will open — select any chest X-ray image
+# The model will predict and display:
+# - Test accuracy
+# - Selected image path
+# - Predicted label (NORMAL or PNEUMONIA)
+# - Confidence (%)
+# - The image itself
+```
+
+### Programmatic Usage
 ```python
 import tensorflow as tf
-
-model = tf.keras.models.load_model('result/pneumonia_densenet121.keras')
-
-# Preprocess and predict on new images
 from tensorflow.keras.preprocessing.image import load_img, img_to_array
 from tensorflow.keras.applications.densenet import preprocess_input
 
+# Load the trained model
+model = tf.keras.models.load_model('result/best_pneumonia_densenet121.keras')
+
+# Preprocess an image
 img = load_img('path/to/xray.jpg', target_size=(224, 224))
 img_array = img_to_array(img)
 img_array = preprocess_input(img_array)
 img_array = tf.expand_dims(img_array, 0)
 
+# Predict
 prediction = model.predict(img_array)
 probability = prediction[0][0]
 label = "PNEUMONIA" if probability > 0.5 else "NORMAL"
-print(f"Prediction: {label} ({probability:.2%})")
+confidence = probability if label == "PNEUMONIA" else 1.0 - probability
+print(f"Prediction: {label}")
+print(f"Confidence: {confidence * 100:.2f}%")
 ```
 
 ## Requirements
